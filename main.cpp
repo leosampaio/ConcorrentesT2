@@ -38,7 +38,7 @@ int main( int argc, char** argv ) {
             else if (string(argv[i]) == "--dont-save-image") {
                 dont_save_image = true;
             }
-            else if (string(argv[i]) == "--opencv-std]") {
+            else if (string(argv[i]) == "--opencv-std") {
                 opencv_std = true;
             }
         }
@@ -57,7 +57,56 @@ int main( int argc, char** argv ) {
         return -1;
     }
 
-    medianBlur(source_image, destiny_image, KERNEL_SIZE);
+    destiny_image = Mat(source_image.cols, source_image.rows, CV_32F);
+
+    if (opencv_std) {
+        blur(source_image, destiny_image, Size(KERNEL_SIZE, KERNEL_SIZE));
+    } else {
+
+        // creates the kernel
+        Mat kernel = Mat::ones(KERNEL_SIZE, KERNEL_SIZE, CV_32F)/
+            (float)(KERNEL_SIZE*KERNEL_SIZE);
+
+        int half_k = KERNEL_SIZE/2;
+        int h = source_image.cols, w = source_image.rows;
+
+        // performs convolution
+        // for each pixel
+        for (int y = half_k; y < h - half_k; ++y) {
+            for (int x = half_k; x < w - half_k; ++x) {
+
+                float total[3]; total[0] = 0; total[1] = 0; total[2] = 0;
+
+                // multiply the kernel values by all neighboors
+                for (int i = -half_k; i <= half_k; ++i) {
+                    for (int j = -half_k; j <= half_k; ++j) {
+                        float kernel_value = 
+                            kernel.at<float>(i+half_k, j+half_k);
+
+                        if (black_and_white) {
+                            total[0] += 
+                                source_image.at<uchar>(y+i, x+j);// * kernel_value;
+                        } else {
+                            for (int k=0; k<3; k++) {
+                                total[k] += 
+                                    source_image.at<Vec3b>(y+i, x+j)[k] * 
+                                    kernel_value;
+                            }
+                        }
+                    }
+                }
+
+                // the resulting pixel is the sum of the multiplications
+                if (black_and_white) {
+                    cout << total[0]/25 <<endl;
+                    destiny_image.at<uchar>(y, x) = uchar(total[0]/25.0);
+                } else {
+                    for (int k=0; k<3; k++)
+                        destiny_image.at<Vec3b>(y, x)[k] = total[k];
+                }
+            }
+        }
+    }
 
     if (visual) {
         imshow("Original Image", source_image);
