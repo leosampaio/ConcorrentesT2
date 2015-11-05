@@ -9,6 +9,11 @@ using namespace cv;
 /// Global Variables
 int KERNEL_SIZE = 5;
 
+/// Funcion Prototypes
+void scalar_convolution(cv::Mat& source_image,
+    cv::Mat& destiny_image,
+    cv::Mat& kernel);
+
 int main( int argc, char** argv ) {
 
     // auxiliars
@@ -63,48 +68,11 @@ int main( int argc, char** argv ) {
         blur(source_image, destiny_image, Size(KERNEL_SIZE, KERNEL_SIZE));
     } else {
 
-        // creates the kernel
+        // creates the kernel for a uniform filter
         Mat kernel = Mat::ones(KERNEL_SIZE, KERNEL_SIZE, CV_32F)/
             (float)(KERNEL_SIZE*KERNEL_SIZE);
 
-        int half_k = KERNEL_SIZE/2;
-        int h = source_image.cols, w = source_image.rows;
-
-        // performs convolution
-        // for each pixel
-        for (int y = half_k; y < h - half_k; ++y) {
-            for (int x = half_k; x < w - half_k; ++x) {
-
-                float total[3]; total[0] = 0; total[1] = 0; total[2] = 0;
-
-                // multiply the kernel values by all neighboors
-                for (int i = -half_k; i <= half_k; ++i) {
-                    for (int j = -half_k; j <= half_k; ++j) {
-                        float kernel_value = 
-                            kernel.at<float>(i+half_k, j+half_k);
-
-                        if (black_and_white) {
-                            total[0] += 
-                                source_image.at<uchar>(y+i, x+j) * kernel_value;
-                        } else {
-                            for (int k=0; k<3; k++) {
-                                total[k] += 
-                                    source_image.at<Vec3b>(y+i, x+j)[k] * 
-                                    kernel_value;
-                            }
-                        }
-                    }
-                }
-
-                // the resulting pixel is the sum of the multiplications
-                if (black_and_white) { 
-                    destiny_image.at<uchar>(y, x) = total[0];
-                } else {
-                    for (int k=0; k<3; k++)
-                        destiny_image.at<Vec3b>(y, x)[k] = total[k];
-                }
-            }
-        }
+        scalar_convolution(source_image, destiny_image, kernel);
     }
 
     if (visual) {
@@ -119,4 +87,49 @@ int main( int argc, char** argv ) {
     }
 
     return 0;
+}
+
+void scalar_convolution(cv::Mat& source_image,
+    cv::Mat& destiny_image,
+    cv::Mat& kernel) {
+
+    int half_k = kernel.rows/2;
+    int h = source_image.cols, w = source_image.rows;
+    bool black_and_white = source_image.channels() == 1;
+
+    // performs convolution
+    // for each pixel
+    for (int y = half_k; y < h - half_k; ++y) {
+        for (int x = half_k; x < w - half_k; ++x) {
+
+            float total[3]; total[0] = 0; total[1] = 0; total[2] = 0;
+
+            // multiply the kernel values by all neighboors
+            for (int i = -half_k; i <= half_k; ++i) {
+                for (int j = -half_k; j <= half_k; ++j) {
+                    float kernel_value = 
+                        kernel.at<float>(i+half_k, j+half_k);
+
+                    if (black_and_white) {
+                        total[0] += 
+                            source_image.at<uchar>(y+i, x+j) * kernel_value;
+                    } else {
+                        for (int k=0; k<3; k++) {
+                            total[k] += 
+                                source_image.at<Vec3b>(y+i, x+j)[k] * 
+                                kernel_value;
+                        }
+                    }
+                }
+            }
+
+            // the resulting pixel is the sum of the multiplications
+            if (black_and_white) { 
+                destiny_image.at<uchar>(y, x) = total[0];
+            } else {
+                for (int k=0; k<3; k++)
+                    destiny_image.at<Vec3b>(y, x)[k] = total[k];
+            }
+        }
+    }
 }
