@@ -6,8 +6,8 @@
 using namespace std;
 using namespace cv;
 
-/// Global Variables
-int KERNEL_SIZE = 5;
+/// Constants
+#define KERNEL_SIZE 5
 
 /// Funcion Prototypes
 void scalar_convolution(cv::Mat& source_image,
@@ -62,7 +62,7 @@ int main( int argc, char** argv ) {
         return -1;
     }
 
-    destiny_image = source_image.clone();
+    destiny_image = Mat::zeros(source_image.size(), source_image.type());
 
     if (opencv_std) {
         blur(source_image, destiny_image, Size(KERNEL_SIZE, KERNEL_SIZE));
