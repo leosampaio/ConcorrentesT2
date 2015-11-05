@@ -139,7 +139,7 @@ int main( int argc, char** argv ) {
         return -1;
     }
 
-    destiny_image = Mat::zeros(source_image.size(), source_image.type());
+    destiny_image = Mat::zeros(source_image.size (), source_image.type());
 
     if (opencv_std) {
         blur(source_image, destiny_image, Size(KERNEL_SIZE, KERNEL_SIZE));
