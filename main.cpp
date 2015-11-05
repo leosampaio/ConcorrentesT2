@@ -1,7 +1,10 @@
-
+#include <stdio.h>
+#include <stdlib.h>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include <iostream>
+#include <mpi.h>
+#include <unistd.h>
 
 using namespace std;
 using namespace cv;
@@ -16,17 +19,20 @@ void scalar_convolution(cv::Mat& source_image,
 
 int main( int argc, char** argv ) {
 
+    // mpi auxiliars
+    int rank = 0, number_of_procecess = 1;
+    char *cpu_name;
+
     // auxiliars
     Mat source_image; Mat destiny_image;
     bool black_and_white = false, visual = false;
-    bool dont_save_image = false, opencv_std = false;
-
+    bool dont_save_image = false, opencv_std = false, parallel = false;
 
     // validade the input
     if (argc < 2) {
         cerr <<
         "usage: ./smooth image_path [--black-and-white] [--opencv-std] \n\
-                                    [--visual] [--dont-save-image]"
+                                    [--visual] [--dont-save-image] [--parallel]"
         << endl;
         return -1;
     }
@@ -46,7 +52,26 @@ int main( int argc, char** argv ) {
             else if (string(argv[i]) == "--opencv-std") {
                 opencv_std = true;
             }
+            else if (string(argv[i]) == "--parallel") {
+                parallel = true;
+            }
         }
+    }
+
+    if (parallel) {
+        
+        // start MPI processes and get rank
+        MPI_Init(&argc,&argv);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+        // how many procecess we have
+        MPI_Comm_size(MPI_COMM_WORLD, &number_of_procecess);
+
+        // for debugging purposes, get hostname
+        cpu_name    = (char *)calloc(80,sizeof(char));
+        gethostname(cpu_name,80);
+        printf("hello MPI user: from process = %i on machine=%s, of NCPU=%i processes\n",
+               rank, cpu_name, number_of_procecess);
     }
 
     // load the image and validate
@@ -82,10 +107,12 @@ int main( int argc, char** argv ) {
     }
 
     if (!dont_save_image) {
-        string new_file_name = "blured_" + image_path;
+        string new_file_name = "blured_" + to_string(rank) + image_path;
         imwrite(new_file_name, destiny_image);
     }
 
+    // horraaaaay, finish it up
+    if (parallel) MPI_Finalize();
     return 0;
 }
 
