@@ -57,7 +57,7 @@ int main( int argc, char** argv ) {
         return -1;
     }
 
-    destiny_image = Mat(source_image.cols, source_image.rows, CV_32F);
+    destiny_image = source_image.clone();
 
     if (opencv_std) {
         blur(source_image, destiny_image, Size(KERNEL_SIZE, KERNEL_SIZE));
@@ -85,7 +85,7 @@ int main( int argc, char** argv ) {
 
                         if (black_and_white) {
                             total[0] += 
-                                source_image.at<uchar>(y+i, x+j);// * kernel_value;
+                                source_image.at<uchar>(y+i, x+j) * kernel_value;
                         } else {
                             for (int k=0; k<3; k++) {
                                 total[k] += 
@@ -97,9 +97,8 @@ int main( int argc, char** argv ) {
                 }
 
                 // the resulting pixel is the sum of the multiplications
-                if (black_and_white) {
-                    cout << total[0]/25 <<endl;
-                    destiny_image.at<uchar>(y, x) = uchar(total[0]/25.0);
+                if (black_and_white) { 
+                    destiny_image.at<uchar>(y, x) = total[0];
                 } else {
                     for (int k=0; k<3; k++)
                         destiny_image.at<Vec3b>(y, x)[k] = total[k];
