@@ -5,6 +5,7 @@
 #include <iostream>
 #include <mpi.h>
 #include <string>
+#include <omp.h>
 #include <unistd.h>
 #include <vector>
 
@@ -41,25 +42,23 @@ int main( int argc, char** argv ) {
     }
 
     // check the optional values
-    if (argc > 2) {
-        for (int i = 2; i < argc; i++) {
-            if (string(argv[i]) == "--black-and-white") {
-                black_and_white = true;
-            }
-            else if (string(argv[i]) == "--visual") {
-                visual = true;
-            }
-            else if (string(argv[i]) == "--dont-save-image") {
-                dont_save_image = true;
-            }
-            else if (string(argv[i]) == "--opencv-std") {
-                opencv_std = true;
-            }
-            else if (string(argv[i]) == "--parallel") {
-                parallel = true;
-            }
-        }
-    }
+	for (int i = 2; i < argc; i++) {
+		if (string(argv[i]) == "--black-and-white") {
+			black_and_white = true;
+		}
+		else if (string(argv[i]) == "--visual") {
+			visual = true;
+		}
+		else if (string(argv[i]) == "--dont-save-image") {
+			dont_save_image = true;
+		}
+		else if (string(argv[i]) == "--opencv-std") {
+			opencv_std = true;
+		}
+		else if (string(argv[i]) == "--parallel") {
+			parallel = true;
+		}
+	}
 
     // load the image and validate
     string image_path(argv[1]);
@@ -129,6 +128,11 @@ int main( int argc, char** argv ) {
 
         }
     }
+	else {
+		// if not parallel, set the maximum number of threads to 1, so it's
+		// actually sequencial (as the code is the same)
+		omp_set_num_threads (1);
+	}
 
     if (!source_image.data) {
         cerr << "Abort! Couldn't load image!" << endl;
@@ -213,41 +217,31 @@ void scalar_convolution(cv::Mat& source_image,
 
     int half_k = kernel.rows/2;
     int w = source_image.cols, h = source_image.rows;
-    bool black_and_white = source_image.channels() == 1;
 
     // performs convolution
-    // for each pixel
-    for (int y = half_k; y < h - half_k; ++y) {
-        for (int x = half_k; x < w - half_k; ++x) {
+    // for each pixel, either 1 channel (BW) or 3 channel (colored) images
+	#pragma omp parallel
+	for (int channel = 0; channel < source_image.channels (); channel++) {
+		for (int y = half_k; y < h - half_k; ++y) {
+			for (int x = half_k; x < w - half_k; ++x) {
 
-            float total[3]; total[0] = 0; total[1] = 0; total[2] = 0;
+				float total = 0;
 
-            // multiply the kernel values by all neighboors
-            for (int i = -half_k; i <= half_k; ++i) {
-                for (int j = -half_k; j <= half_k; ++j) {
-                    float kernel_value = 
-                        kernel.at<float>(i+half_k, j+half_k);
+				// multiply the kernel values by all neighboors
+				#pragma omp parallel reduction(+:total)
+				for (int i = -half_k; i <= half_k; ++i) {
+					for (int j = -half_k; j <= half_k; ++j) {
+						auto kernel_value = kernel.at<float> (i + half_k, j + half_k);
 
-                    if (black_and_white) {
-                        total[0] += 
-                            source_image.at<uchar>(y+i, x+j) * kernel_value;
-                    } else {
-                        for (int k=0; k<3; k++) {
-                            total[k] += 
-                                source_image.at<Vec3b>(y+i, x+j)[k] * 
-                                kernel_value;
-                        }
-                    }
-                }
-            }
+						auto pixel = source_image.ptr (y + i, x + j) + channel;
+						total += (*pixel) * kernel_value;
+					}
+				}
 
-            // the resulting pixel is the sum of the multiplications
-            if (black_and_white) { 
-                destiny_image.at<uchar>(y, x) = total[0];
-            } else {
-                for (int k=0; k<3; k++)
-                    destiny_image.at<Vec3b>(y, x)[k] = total[k];
-            }
-        }
-    }
+				// the resulting pixel is the sum of the multiplications
+				auto pixel = destiny_image.ptr (y, x) + channel;
+				*pixel = total;
+			}
+		}
+	}
 }

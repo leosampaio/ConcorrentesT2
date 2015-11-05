@@ -11,13 +11,16 @@ NP = 				4
 HOSTFILE = 			hostfile
 
 all: $(OBJS:%=$(BUILD_DIR)/%)
-	$(CXX) $^ $(CXXFLAGS) $(LIBS) -o $(NAME)
+	$(CXX) $^ $(CXXFLAGS) -o $(NAME) $(LIBS)
 
 $(BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 run:
+	./$(NAME) $(ARGS)
+
+run_parallel:
 	mpirun -np $(NP) -hostfile $(HOSTFILE) ./$(NAME) $(ARGS)
 
 clean:
