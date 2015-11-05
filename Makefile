@@ -34,9 +34,7 @@ run:
 	@./$(NAME) $(ARGS)
 
 clean:
-	@rm -f *.elf *.o *.bin *.d *.map
-	@rm -f build/*
+	$(RM) *.o $(NAME) $(NAME_PARALLEL) blured_* $(BUILD_DIR)/*
 
 zip:
 	@zip -r Concorrente.zip Makefile $(HEADERS) $(SRCS)
-	-rm -f *.elf *.o *.bin *.d *.map
