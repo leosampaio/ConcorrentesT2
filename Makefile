@@ -1,35 +1,39 @@
 CXX = 				g++
 CMPI = 				mpic++
-CXXFLAGS = 			-I/usr/local/include/ -O0 -g3 -Wall -g
-LIBS =    			-L/usr/local/lib -lpthread -ldl -lm -std=gnu++0x -std=c++0x -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video -lopencv_objdetect
+CXXFLAGS = 			-I/usr/local/include -O0 -Wall -g -std=c++11
+#LIBS =    			-L/usr/local/lib -lpthread -ldl -lm -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video -lopencv_objdetect
+LIBS =    			-L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc
 SRCS = 				main.cpp mainParallel.cpp
 HEADERS = 	
-OBJS_SIMPLE = 	
-OBJS_PARALLEL = 
+BUILD_DIR =			build
+OBJS_SIMPLE = 		main.o
+OBJS_PARALLEL = 	mainParallel.o
 NAME =      		smooth
+NAME_PARALLEL =		$(NAME)Parallel
 NP = 				4
 HOSTFILE = 			hostfile
 
 all: simple parallel
 
-simple: $(OBJS_SIMPLE) build/main.o
-	$(CXX) $(OBJS_SIMPLE) build/main.o $(CXXFLAGS) $(LIBS) -o $(NAME)
+simple: $(OBJS_SIMPLE:%=$(BUILD_DIR)/%)
+	$(CXX) $^ $(CXXFLAGS) $(LIBS) -o $(NAME)
 
 parallel: CXX = $(CMPI)
-parallel: $(OBJS_PARALLEL) build/mainParallel.o
-	$(CXX) $(OBJS_PARALLEL) build/mainParallel.o $(CXXFLAGS) $(LIBS) -o $(NAME)Parallel
+parallel: CXXFLAGS := $(CXXFLAGS) -fopenmp
+parallel: $(OBJS_PARALLEL:%=$(BUILD_DIR)/%)
+	$(CXX) $^ $(CXXFLAGS) $(LIBS) -o $(NAME_PARALLEL)
 
-build/%.o: %.cpp
-	@mkdir -p build
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(BUILD_DIR)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 run_parallel:
-	mpirun -np $(NP) -hostfile $(HOSTFILE) ./$(NAME)Parallel $(ARGS)
+	mpirun -np $(NP) -hostfile $(HOSTFILE) ./$(NAME_PARALLEL) $(ARGS)
 
 run:
 	@./$(NAME) $(ARGS)
 
-clear:
+clean:
 	@rm -f *.elf *.o *.bin *.d *.map
 	@rm -f build/*
 

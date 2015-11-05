@@ -4,6 +4,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <iostream>
 #include <mpi.h>
+#include <unistd.h>
 
 using namespace std;
 using namespace cv;

@@ -1,4 +1,15 @@
+# objetos/executáveis
 build/
-.DS_Store
+*.o
 smooth
 smoothParallel
+
+# saídas
+blured_*
+
+# backups de texto
+*~
+*.swp
+
+# coiso do macos
+.DS_Store
