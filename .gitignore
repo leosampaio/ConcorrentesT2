@@ -4,6 +4,9 @@ build/
 smooth
 smoothParallel
 
+# entradas do site
+gray/
+rgb/
 # saídas
 blured_*
 *times
