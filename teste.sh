@@ -9,22 +9,28 @@ roda_parallel () {
 
 # roda as preto e brancas
 echo Teste das preto e brancas
-for f in $(ls gray/*.jpg 2> /dev/null); do
-	echo -en "\t'$f' [sequencial]"
-	roda_seq $f --black-and-white
-	echo -n " [paralelo]"
-	roda_parallel $f --black-and-white
-	echo
+for i in $(seq 10); do
+	echo -e "$i\n=="
+	for f in $(ls gray/*.jpg 2> /dev/null); do
+		echo -en "\t'$f' [sequencial]"
+		roda_seq $f --black-and-white
+		echo -n " [paralelo]"
+		roda_parallel $f --black-and-white
+		echo
+	done
 done
 echo Fim das preto e brancas
 
 # roda as coloridas
 echo Teste das coloridas
-for f in $(ls rgb/*.jpg 2> /dev/null); do
-	echo -en "\t'$f' [sequencial]"
-	roda_seq $f
-	echo -n " [paralelo]"
-	roda_parallel $f
-	echo
+for i in $(seq 10); do
+	echo -e "$i\n=="
+	for f in $(ls rgb/*.jpg 2> /dev/null); do
+		echo -en "\t'$f' [sequencial]"
+		roda_seq $f
+		echo -n " [paralelo]"
+		roda_parallel $f
+		echo
+	done
 done
 echo Fim das coloridas
