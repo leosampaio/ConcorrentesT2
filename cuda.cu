@@ -17,10 +17,16 @@ void scalar_convolution(cv::Mat& source_image,
     cv::Mat& destiny_image,
     cv::Mat& kernel);
 
+void scalar_convolution_oldschool(unsigned char* source_image,
+    unsigned char* destiny_image,
+    float* kernel,
+    int k, 
+    int w, int h, int channels);
+
 int main( int argc, char** argv ) {
 
     // auxiliars
-    Mat source_image, destiny_image, final_image;
+    Mat source_image, destiny_image;
     bool black_and_white = false, visual = false;
     bool dont_save_image = false, opencv_std = false;
 
@@ -70,7 +76,12 @@ int main( int argc, char** argv ) {
         Mat kernel = Mat::ones(KERNEL_SIZE, KERNEL_SIZE, CV_32F)/
             (float)(KERNEL_SIZE*KERNEL_SIZE);
 
-        scalar_convolution(source_image, destiny_image, kernel);
+        //scalar_convolution(source_image, destiny_image, kernel);
+        scalar_convolution_oldschool(
+        	source_image.data, destiny_image.data, 
+        	(float*) kernel.data, KERNEL_SIZE,  
+			source_image.cols, source_image.rows, source_image.channels()
+		);
     }
 
 	if (visual) {
@@ -81,7 +92,7 @@ int main( int argc, char** argv ) {
 
 	if (!dont_save_image) {
 		string new_file_name = "blured_" + image_path;
-		imwrite(new_file_name, final_image);
+		imwrite(new_file_name, destiny_image);
 	}
 
     return 0;
@@ -115,6 +126,39 @@ void scalar_convolution(cv::Mat& source_image,
 				// the resulting pixel is the sum of the multiplications
 				auto pixel = destiny_image.ptr (y, x) + channel;
 				*pixel = total;
+			}
+		}
+	}
+}
+
+void scalar_convolution_oldschool(unsigned char* source_image,
+    unsigned char* destiny_image,
+    float* kernel,
+    int k, 
+    int w, int h, int channels) {
+
+	int half_k = k/2;
+
+    // performs convolution
+    // for each pixel, either 1 channel (BW) or 3 channel (colored) images
+	for (int channel = 0; channel < channels; channel++) {
+		for (int y = half_k; y < h - half_k; ++y) {
+			for (int x = half_k; x < w - half_k; ++x) {
+
+				float total = 0;
+
+				// multiply the kernel values by all neighboors
+				for (int i = -half_k; i <= half_k; ++i) {
+					for (int j = -half_k; j <= half_k; ++j) {
+						auto kernel_value = kernel[i + half_k + (j + half_k)*k];
+
+						auto pixel = source_image[(y + i)*w + x + j + channel];
+						total += pixel * kernel_value;
+					}
+				}
+
+				// the resulting pixel is the sum of the multiplications
+				destiny_image[y*w + x + channel] = total;
 			}
 		}
 	}

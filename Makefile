@@ -1,7 +1,7 @@
 CXX = 				mpic++
-CUDA_CC =			nvcc
+CUDA_CC =			g++
 CXXFLAGS = 			-I/usr/local/include -Wall -g -std=c++11 -fopenmp
-CUDA_FLAGS =		-std=c++11
+CUDA_FLAGS =		-std=c++11 -I/usr/local/include -Wall
 LIBS =    			-L/usr/local/lib/ -lopencv_core -lopencv_highgui -lopencv_imgproc
 SRCS = 				main.cpp
 CUDA_SRC =			cuda.cu
