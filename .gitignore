@@ -3,6 +3,7 @@ build/
 *.o
 smooth
 smoothParallel
+cudaSmooth
 
 # entradas do site
 gray/
