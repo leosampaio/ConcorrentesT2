@@ -26,7 +26,7 @@ void scalar_convolution_oldschool(unsigned char* source_image,
 int main( int argc, char** argv ) {
 
     // auxiliars
-    Mat source_image, destiny_image;
+    Mat source_image, destiny_image, destiny_imageAux;
     bool black_and_white = false, visual = false;
     bool dont_save_image = false, opencv_std = false;
 
@@ -67,6 +67,7 @@ int main( int argc, char** argv ) {
     }
 
     destiny_image = Mat::zeros(source_image.size (), source_image.type());
+    destiny_imageAux = Mat::zeros(source_image.size (), source_image.type());
 
     if (opencv_std) {
         blur(source_image, destiny_image, Size(KERNEL_SIZE, KERNEL_SIZE));
@@ -76,12 +77,16 @@ int main( int argc, char** argv ) {
         Mat kernel = Mat::ones(KERNEL_SIZE, KERNEL_SIZE, CV_32F)/
             (float)(KERNEL_SIZE*KERNEL_SIZE);
 
+		scalar_convolution (source_image, destiny_imageAux, kernel);
+
         //scalar_convolution(source_image, destiny_image, kernel);
         scalar_convolution_oldschool(
         	source_image.data, destiny_image.data, 
         	(float*) kernel.data, KERNEL_SIZE,  
 			source_image.cols, source_image.rows, source_image.channels()
 		);
+
+		cout << "Resultado: " << (destiny_image == destiny_imageAux) << endl;
     }
 
 	if (visual) {
@@ -137,7 +142,7 @@ void scalar_convolution_oldschool(unsigned char* source_image,
     int k, 
     int w, int h, int channels) {
 
-	int half_k = k/2;
+	int half_k = k / 2;
 
     // performs convolution
     // for each pixel, either 1 channel (BW) or 3 channel (colored) images
@@ -150,15 +155,15 @@ void scalar_convolution_oldschool(unsigned char* source_image,
 				// multiply the kernel values by all neighboors
 				for (int i = -half_k; i <= half_k; ++i) {
 					for (int j = -half_k; j <= half_k; ++j) {
-						auto kernel_value = kernel[i + half_k + (j + half_k)*k];
+						auto kernel_value = kernel[i + half_k + (j + half_k) * k];
 
-						auto pixel = source_image + channels*((y + i)*w + x + j) + channel;
+						auto pixel = source_image + channels * ((y + i) * w + x + j) + channel;
 						total += *pixel * kernel_value;
 					}
 				}
 
 				// the resulting pixel is the sum of the multiplications
-				auto pixel = destiny_image + channels*(y*w + x) + channel;
+				auto pixel = destiny_image + channels * (y * w + x) + channel;
 				*pixel = total;
 			}
 		}
