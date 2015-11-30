@@ -1,9 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <unistd.h>
 
 using namespace std;
@@ -17,7 +18,7 @@ void scalar_convolution(cv::Mat& source_image,
     cv::Mat& destiny_image,
     cv::Mat& kernel);
 
-void scalar_convolution_oldschool(unsigned char* source_image,
+__global__ void scalar_convolution_oldschool(unsigned char* source_image,
     unsigned char* destiny_image,
     float* kernel,
     int k, 
@@ -27,6 +28,7 @@ int main( int argc, char** argv ) {
 
     // auxiliars
     Mat source_image, destiny_image, destiny_imageAux;
+	unsigned char *source_image_raw, *destiny_image_raw;
     bool black_and_white = false, visual = false;
     bool dont_save_image = false, opencv_std = false;
 
@@ -76,17 +78,44 @@ int main( int argc, char** argv ) {
         // creates the kernel for a uniform filter
         Mat kernel = Mat::ones(KERNEL_SIZE, KERNEL_SIZE, CV_32F)/
             (float)(KERNEL_SIZE*KERNEL_SIZE);
+		float *kernel_raw;
 
+
+		// preparação para chamar o kernel CUDA
+		size_t total_memory = source_image.total () * source_image.channels () * sizeof (unsigned char);
+		size_t kernel_memory = kernel.total () * sizeof (float);
+		cout << "Tamanho de memória total: " << total_memory << endl;
+		cout << "Memória do Kernel: " << kernel_memory << " = " << kernel.total () << " * " << sizeof (float) << endl;
+
+		if (cudaMalloc (&source_image_raw, total_memory))	cerr << "Eita, cudaMalloc falhou =/" << endl;
+		if (cudaMalloc (&destiny_image_raw, total_memory))	cerr << "Eita, cudaMalloc falhou =/" << endl;
+		if (cudaMalloc (&kernel_raw, kernel_memory))		cerr << "Eita, cudaMalloc falhou =/" << endl;
+
+		cudaMemcpy (source_image_raw, source_image.data, total_memory, cudaMemcpyHostToDevice);
+		cudaMemcpy (destiny_image_raw, destiny_image.data, total_memory, cudaMemcpyHostToDevice);
+		cudaMemcpy (kernel_raw, kernel.data, kernel_memory, cudaMemcpyHostToDevice);
+
+		// roda o normal
 		scalar_convolution (source_image, destiny_imageAux, kernel);
 
-        //scalar_convolution(source_image, destiny_image, kernel);
-        scalar_convolution_oldschool(
-        	source_image.data, destiny_image.data, 
-        	(float*) kernel.data, KERNEL_SIZE,  
-			source_image.cols, source_image.rows, source_image.channels()
+        // e roda o kernel na GPU
+        scalar_convolution_oldschool <<<1, 1>>> (
+			source_image_raw, destiny_image_raw,
+			kernel_raw, KERNEL_SIZE,
+			source_image.cols, source_image.rows, source_image.channels ()
 		);
 
-		cout << "Resultado: " << (destiny_image == destiny_imageAux) << endl;
+		cudaMemcpy (destiny_image.data, destiny_image_raw, total_memory, cudaMemcpyDeviceToHost);
+
+		unsigned char aux[total_memory];
+		cudaMemcpy (aux, destiny_image_raw, total_memory, cudaMemcpyDeviceToHost);
+
+		cout << "Resultado (entre Mats): " << memcmp (destiny_image.data, destiny_imageAux.data, total_memory) << endl;
+		cout << "Resultado (entre raws): " << memcmp (aux, destiny_image.data, total_memory) << endl;
+
+		cudaFree (source_image_raw);
+		cudaFree (destiny_image_raw);
+		cudaFree (kernel_raw);
     }
 
 	if (visual) {
@@ -107,8 +136,11 @@ void scalar_convolution(cv::Mat& source_image,
     cv::Mat& destiny_image,
     cv::Mat& kernel) {
 
-    int half_k = kernel.rows/2;
+	int k = kernel.rows;
+    int half_k = k / 2;
     int w = source_image.cols, h = source_image.rows;
+
+	printf ("CPU - Imagem: %dx%d, kernel %dx%d de %f, número de canais %d\n", h, w, k, k, kernel.at<float> (0, 0), source_image.channels ());
 
     // performs convolution
     // for each pixel, either 1 channel (BW) or 3 channel (colored) images
@@ -136,13 +168,16 @@ void scalar_convolution(cv::Mat& source_image,
 	}
 }
 
-void scalar_convolution_oldschool(unsigned char* source_image,
+__global__ void scalar_convolution_oldschool(unsigned char* source_image,
     unsigned char* destiny_image,
     float* kernel,
     int k, 
     int w, int h, int channels) {
 
 	int half_k = k / 2;
+
+	printf ("oi do %d %d\n", blockIdx.x, threadIdx.x);
+	printf ("GPU - Imagem: %dx%d, kernel %dx%d de %f, número de canais %d\n", h, w, k, k, kernel[0], channels);
 
     // performs convolution
     // for each pixel, either 1 channel (BW) or 3 channel (colored) images
