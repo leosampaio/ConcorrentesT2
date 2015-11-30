@@ -141,9 +141,9 @@ void scalar_convolution_oldschool(unsigned char* source_image,
 
     // performs convolution
     // for each pixel, either 1 channel (BW) or 3 channel (colored) images
-	for (int channel = 0; channel < channels; channel++) {
-		for (int y = half_k; y < h - half_k; ++y) {
-			for (int x = half_k; x < w - half_k; ++x) {
+	for (int y = half_k; y < h - half_k; ++y) {
+		for (int x = half_k; x < w - half_k; ++x) {
+			for (int channel = 0; channel < channels; ++channel) {
 
 				float total = 0;
 
@@ -152,13 +152,14 @@ void scalar_convolution_oldschool(unsigned char* source_image,
 					for (int j = -half_k; j <= half_k; ++j) {
 						auto kernel_value = kernel[i + half_k + (j + half_k)*k];
 
-						auto pixel = source_image[(y + i)*w + x + j + channel];
-						total += pixel * kernel_value;
+						auto pixel = source_image + channels*((y + i)*w + x + j) + channel;
+						total += *pixel * kernel_value;
 					}
 				}
 
 				// the resulting pixel is the sum of the multiplications
-				destiny_image[y*w + x + channel] = total;
+				auto pixel = destiny_image + channels*(y*w + x) + channel;
+				*pixel = total;
 			}
 		}
 	}
