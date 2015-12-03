@@ -33,16 +33,16 @@ int main( int argc, char** argv ) {
     bool dont_save_image = false, opencv_std = false;
 
     // validade the input
-    if (argc < 2) {
+    if (argc < 3) {
         cerr <<
-        "usage: ./smooth image_path [--black-and-white] [--opencv-std] \n\
+        "usage: ./smooth image_path numThreads [--black-and-white] [--opencv-std] \n\
                                     [--visual] [--dont-save-image] [--parallel]"
         << endl;
         return -1;
     }
 
     // check the optional values
-	for (int i = 2; i < argc; i++) {
+	for (int i = 3; i < argc; i++) {
 		if (string(argv[i]) == "--black-and-white") {
 			black_and_white = true;
 		}
@@ -56,6 +56,11 @@ int main( int argc, char** argv ) {
 
     // load the image and validate
     string image_path(argv[1]);
+	int numThreads = atoi (argv[2]);
+	if (numThreads <= 0) {
+		cerr << "Poxa, número de Threads tem que ser positivo!" << endl;
+		return -1;
+	}
 
 	if (!black_and_white) {
 		source_image = imread(image_path, CV_LOAD_IMAGE_COLOR);
@@ -98,7 +103,7 @@ int main( int argc, char** argv ) {
 		/*scalar_convolution (source_image, destiny_imageAux, kernel);*/
 
 		// e roda o kernel na GPU
-		scalar_convolution_oldschool <<<1, 1024>>> (
+		scalar_convolution_oldschool <<<1, numThreads>>> (
 			source_image_raw, destiny_image_raw,
 			kernel_raw, KERNEL_SIZE,
 			source_image.cols, source_image.rows, source_image.channels ()
@@ -130,8 +135,8 @@ void scalar_convolution(cv::Mat& source_image,
     cv::Mat& kernel) {
 
 	int k = kernel.rows;
-    int half_k = k / 2;
-    int w = source_image.cols, h = source_image.rows;
+	int half_k = k / 2;
+	int w = source_image.cols, h = source_image.rows;
 
     // performs convolution
     // for each pixel, either 1 channel (BW) or 3 channel (colored) images
