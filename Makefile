@@ -14,7 +14,7 @@ NP = 				4
 HOSTFILE = 			hostfile
 
 all: $(OBJS:%=$(BUILD_DIR)/%) cuda
-	$(CXX) $^ $(CXXFLAGS) -o $(NAME) $(LIBS)
+	$(CXX) $< $(CXXFLAGS) -o $(NAME) $(LIBS)
 
 $(BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(BUILD_DIR)

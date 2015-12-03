@@ -84,21 +84,21 @@ int main( int argc, char** argv ) {
 		// preparação para chamar o kernel CUDA
 		size_t total_memory = source_image.total () * source_image.channels () * sizeof (unsigned char);
 		size_t kernel_memory = kernel.total () * sizeof (float);
-		cout << "Tamanho de memória total: " << total_memory << endl;
-		cout << "Memória do Kernel: " << kernel_memory << " = " << kernel.total () << " * " << sizeof (float) << endl;
+		/*cout << "Tamanho de memória total: " << total_memory << endl;*/
+		/*cout << "Memória do Kernel: " << kernel_memory << " = " << kernel.total () << " * " << sizeof (float) << endl;*/
 
-		if (cudaMalloc (&source_image_raw, total_memory))	cerr << "Eita, cudaMalloc falhou =/" << endl;
-		if (cudaMalloc (&destiny_image_raw, total_memory))	cerr << "Eita, cudaMalloc falhou =/" << endl;
-		if (cudaMalloc (&kernel_raw, kernel_memory))		cerr << "Eita, cudaMalloc falhou =/" << endl;
+		if (cudaMalloc (&source_image_raw, total_memory))	cerr << "Eita, cudaMalloc (source)  falhou =/" << endl;
+		if (cudaMalloc (&destiny_image_raw, total_memory))	cerr << "Eita, cudaMalloc (destiny) falhou =/" << endl;
+		if (cudaMalloc (&kernel_raw, kernel_memory))		cerr << "Eita, cudaMalloc (kernel)  falhou =/" << endl;
 
 		cudaMemcpy (source_image_raw, source_image.data, total_memory, cudaMemcpyHostToDevice);
 		cudaMemcpy (kernel_raw, kernel.data, kernel_memory, cudaMemcpyHostToDevice);
 
 		// roda o normal
-		scalar_convolution (source_image, destiny_imageAux, kernel);
+		/*scalar_convolution (source_image, destiny_imageAux, kernel);*/
 
 		// e roda o kernel na GPU
-		scalar_convolution_oldschool <<<1, 16>>> (
+		scalar_convolution_oldschool <<<1, 1024>>> (
 			source_image_raw, destiny_image_raw,
 			kernel_raw, KERNEL_SIZE,
 			source_image.cols, source_image.rows, source_image.channels ()
